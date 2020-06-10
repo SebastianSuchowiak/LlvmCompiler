@@ -2,19 +2,25 @@ import ply.lex as lex
 
 
 class MyLexer(object):
-    tokens = (
+    reserved = {
+        'declare': 'DECLARE',
+        'define': 'DEFINE',
+        'getelementptr': 'GETELEMENTRPTR',
+        'call': 'call',
+        'ret': 'ret',
+        'unnamed_addr': 'UNNAMED_ADDR',
+        'global': 'GLOBAL',
+        'constant': 'CONSTANT',
+        'nocapture': 'NOCAPTURE'
+    }
+
+    tokens = [
         'NUMBER',
         'ADD',
-        'MINUS',
-        'TIMES',
-        'DIVIDE',
-        'LPAREN',
-        'RPAREN',
-        'LCURL',
-        'RCURL',
+        'SUB',
+        'MUL',
+        'DIV',
         'COMMENT',
-        'COMMA',
-        'EQUALS',
         'GLOBAL_NAME',
         'LOCAL_NAME',
         'INT_TYPE',
@@ -22,21 +28,29 @@ class MyLexer(object):
         'LOCAL_ID',
         'LABEL',
         'ATTR_GROUP_ID',
-    )
+        'COMDAT_NAME',
+        'METADATA_NAME',
+        'METADATA_ID',
+        'STRING',
+        'LINKAGE_TYPE'
+    ] + list(reserved.values())
 
     t_ADD = r'add'
-    t_MINUS = r'minus'
-    t_TIMES = r'mul'
-    t_DIVIDE = r'div'
-    t_LPAREN = r'\('
-    t_RPAREN = r'\)'
-    t_LCURL = r'\{'
-    t_RCURL = r'\}'
-    t_COMMA = r','
-    t_EQUALS = r'='
-    t_INT_TYPE = r'(i32)|(i8)|(i16)|(i64)'
-    t_LABEL = r'[a-zA-Z$._0-9]+:'
-    t_ATTR_GROUP_ID = r'#\d+'
+    t_SUB = r'sub'
+    t_MUL = r'mul'
+    t_DIV = r'sdiv'
+    literals = ['(', ')', '{', '}', ',', '=', '!', '[', ']', 'x']
+    t_INT_TYPE = r'((i32)|(i8)|(i16)|(i64))\*?'
+    NAME = r'[a-zA-Z$._][a-zA-Z$._0-9]*'
+    ID = r'\d+'
+    t_LABEL = rf'{NAME}:'
+    t_ATTR_GROUP_ID = rf'\#{ID}'
+    t_COMDAT_NAME = rf'${NAME}'
+    t_METADATA_NAME = rf'!{NAME}'
+    t_METADATA_ID = rf'!{ID}'
+    t_STRING = r'c".*"'
+    t_LINKAGE_TYPE = r'(private)|(internal)|(available_externally)|(linkonce)|(weak)|(common)|(appending)|(' \
+                     r'extern_weak)|(external) '
 
     t_ignore_COMMENT = r';.*'
 
@@ -59,7 +73,7 @@ class MyLexer(object):
         return t
 
     def t_NUMBER(self, t):
-        r'\d+'
+        r'-{0,1}\d+'
         t.value = int(t.value)
         return t
 
@@ -85,11 +99,14 @@ class MyLexer(object):
             print(tok)
 
 
-test = '''
-%0 = add i32 %X, %X           ; yields i32:%0
-%1 = add i32 %0, %0           ; yields i32:%1
-%result = add i32 %1, %1
-'''
-lexer = MyLexer()
-lexer.build()
-lexer.test(test)
+if __name__ == '__main__':
+    test = '''
+    %0 = add i32 %X, %X           ; yields i32:%0
+    %1 = add i32 %0, %0           ; yields i32:%1
+    %result = add i32 %1, %1
+    !foo = !{ !1, !2 }
+    @.str = private constant [13 x i8] c"hello world\0A\00"
+    '''
+    lexer = MyLexer()
+    lexer.build()
+    lexer.test(test)
